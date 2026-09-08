@@ -11,7 +11,11 @@ Chrome or Edge. **No internet, no install, no build step.**
 
 ## Quick start
 
-1. Download [`duty-roster.html`](duty-roster.html).
+**Try it live:** <https://crypt-manuel.github.io/ikonda-duty-roster/> — then save the page
+(Ctrl+S, "Webpage, HTML Only") or download it below for offline use.
+
+1. Download [`duty-roster.html`](duty-roster.html) (or grab it from the
+   [latest release](https://github.com/crypt-manuel/ikonda-duty-roster/releases/latest)).
 2. Open it in Chrome or Edge.
 3. Open **Staff** to enter your staff names (defaults are placeholders), pick a shift
    from the palette, and click or drag over cells to paint.
