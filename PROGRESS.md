@@ -10,8 +10,15 @@ can be copied to any PC/flash drive and opened in Chrome/Edge with no internet).
 
 ## Repository layout (since GitHub publication, Sep 2026)
 - `duty-roster.html` — the app, committed with **placeholder staff names** ("Doctor 1"–"Doctor 14")
+- `sync-local.js` — **run `node sync-local.js` after every change to `duty-roster.html`**: copies it
+  over the private real-names copy and re-injects the real `DEFAULT_STAFF`, so the two can't drift.
+  Contains no names itself (it is committed): they come from `local/staff.json` if present, else are
+  read back out of the existing local copy before it is overwritten. Refuses to run if the names it
+  finds are the "Doctor N" placeholders (so a real list can't be lost), and reports whether the two
+  files ended up differing anywhere outside the staff block.
 - `local/` — **gitignored**, private material:
   - `duty-roster-ikonda.html` — the copy with the real Ikonda staff list in `DEFAULT_STAFF`
+  - `staff.json` (optional) — `["Name One", ...]`; if present it is the authoritative name source
   - `Duty Roster.docx` — original rough Word template (14 doctors, days 1–31, key M/E/N/M-E/O)
   - `PXL_20260530_045514613.jpg` — photo of the hand-filled June 2026 paper roster
   - `Screenshot 2026-09-07 133430.png` — clean hospital logo (already embedded in the app, 280px)
