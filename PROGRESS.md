@@ -142,6 +142,22 @@ can be copied to any PC/flash drive and opened in Chrome/Edge with no internet).
 - Zebra striping uses a zero-specificity `:where()` so shift colours win; `[hidden]{display:none!important}`
   was needed because `.lg{display:flex}` overrode the hidden attribute.
 
+## Release checklist (from v1.2 on)
+1. `node bump-version.js <x.y.z>` — sets `APP_VERSION` in the HTML **and** `version` in
+   `electron/package.json` (the two must agree), then runs `sync-local.js` for you.
+2. Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version heading.
+3. `cd electron && npm run dist` — builds installer + portable exe + zip + tar.gz.
+   Watch for a transient `EPERM` on `dist/win-unpacked` (antivirus scanning the freshly
+   extracted binaries): delete `dist/win-unpacked.tmp` and re-run. Verify the packaged
+   app really carries the new code: `npx asar extract dist/win-unpacked/resources/app.asar <dir>`
+   then diff its `app/duty-roster.html` against the source. `npx electron smoke.js` should pass.
+4. Commit, then `git tag -a vX.Y` and push **both** `main` and the tag.
+5. `gh release create vX.Y <assets> --notes ...`, or upload to a draft then
+   `gh release edit vX.Y --draft=false --latest`. Assets: `duty-roster.html`, the two
+   archives, the two exes. The ~150 MB uploads are slow and have dropped mid-transfer
+   before — upload one at a time so a failure doesn't cost the whole set.
+6. Check the published assets: download `duty-roster.html` back and diff it against source.
+
 ## Ideas discussed but NOT yet built
 - Cadre-aware rules (e.g. warn if no MD+ on a night; interns never solo on nights)
 - Multiple departments/sheets in one file (feature 8 — user chose 1–7 only)
