@@ -5,8 +5,19 @@ All notable changes to the Duty Roster app. Versions follow the GitHub releases 
 
 ## [Unreleased]
 
-_Nothing yet — add entries here as work lands, then move them under a version heading
-when it is released._
+### Added
+
+- **Undo / redo** — `Ctrl+Z` and `Ctrl+Y` (or the toolbar buttons) step back through
+  shift edits, including the ones that were previously impossible to take back:
+  Clear month, Copy last month, pattern fill, leave, accepting or discarding
+  suggestions, and staff changes. A whole drag-paint counts as one step, and each
+  button names the action it will undo. Undoing an edit made in another month
+  switches back to that month first. History is kept in memory for the session and
+  is not saved with the roster; typing in the Staff list or the NOTES box still uses
+  the browser's own undo.
+- **Cadre-aware night checks** — the balance assistant now also flags a night with
+  nobody at MD level or above, and an intern left on night alone. These only run once
+  cadres are set in the Staff list, so rosters that don't use them see no change.
 
 ## [1.1] — 2026-09-09
 

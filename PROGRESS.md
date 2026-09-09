@@ -142,6 +142,25 @@ can be copied to any PC/flash drive and opened in Chrome/Edge with no internet).
 - Zebra striping uses a zero-specificity `:where()` so shift colours win; `[hidden]{display:none!important}`
   was needed because `.lg{display:flex}` overrode the hidden attribute.
 
+## In progress for v1.2 (unreleased, on main)
+- **Undo/redo**: `snapshot(label)` pushes `{key: month, label, data: JSON.stringify(roster())}`
+  onto `undoStack` **before** each mutation (cap `HIST_MAX` 60, clears `redoStack`);
+  `stepHistory(from,to)` swaps the snapshot with the live month and sets `state.current`
+  to the entry's month, so undoing an edit made elsewhere jumps back to it. In memory only —
+  never written to localStorage; cleared on Restore. One snapshot per drag (taken at
+  mousedown, not in `applyCell`). Ctrl+Z / Ctrl+Y (and Ctrl+Shift+Z) handled at the top of
+  the keydown listener, before the existing `ctrlKey` early-return, and skipped when focus
+  is in a text field so the browser's own undo still works there. Staff renames and NOTES
+  edits are deliberately not snapshotted (they fire per keystroke; native undo covers them).
+  Adding a new mutating action? Call `snapshot("...")` first or it won't be undoable.
+- **Cadre-aware night checks**: in `analyse()`, returns `{cadreIssues, usesCadre}` alongside
+  `rows`/`cov`. Flags a night with nobody of cadre SP/MD on it, and a lone INT on night.
+  Gated on `usesCadre` (any staff member has a role) — without that gate every night would
+  warn for rosters that don't use cadres. Empty nights are skipped (already reported as
+  missing cover). Surfaced in the balance panel's "Things to look at" only — not on the sheet.
+- **Still to do**: retune the suggestion engine to the department's real rotation (needs the
+  actual OPD & EMD rhythm from the user — the current run-of-4 M→E→N→D order was a guess).
+
 ## Release checklist (from v1.2 on)
 1. `node bump-version.js <x.y.z>` — sets `APP_VERSION` in the HTML **and** `version` in
    `electron/package.json` (the two must agree), then runs `sync-local.js` for you.
