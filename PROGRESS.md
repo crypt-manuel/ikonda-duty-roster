@@ -92,7 +92,23 @@ can be copied to any PC/flash drive and opened in Chrome/Edge with no internet).
   hidden in print + PNG export), then arrows move, letters paint (M D E N O L, X=M/E, T=ENT,
   C=ECHO; cursor auto-steps right after each letter, typewriter style), H toggles highlight,
   Delete/Space clears, Backspace clears + steps left, Home/End jump, Escape hides. Handler
-  ignores keys when focus is in inputs/contenteditable/panels or a dialog is open.
+  ignores keys when focus is in inputs/**buttons**/contenteditable/panels or a dialog is open.
+- **Bug-fix pass (2026-09-09, before v1.1 was published — all three found by inspection and
+  reproduced in-browser; fixed and re-verified):**
+  1. *False backup indicator*: `saveBackup` stamped `state.lastBackup` **before** the write.
+     A failed write (flash drive pulled) + cancelled re-pick left the toolbar claiming a
+     backup that never happened. Now `backupJSON(stampISO)` injects the stamp into the file
+     copy only, and `commitBackup()` writes it to state **after** `w.close()` succeeds.
+     (`noteBackup()` is gone — don't reintroduce the stamp-before-write ordering.)
+  2. *Keyboard cursor wrote to the wrong doctor*: `keyCursor` stored a staff **index**, so
+     staff-panel reorder/delete silently moved it to another person. Now `{id, d}`, resolved
+     per keystroke via `findIndex`; unresolvable (deleted) → keys ignored, arrows reset to
+     row 0. Also cleared on restore and on deleting the cursor's own person.
+  3. *Toolbar buttons didn't shield the grid*: buttons keep focus after a click, so Space
+     cleared a cell and letters painted one. `button` added to the keydown guard selector.
+  Minor, same pass: `swapSel` cleared when its person is deleted (was writing orphan cells
+  under a removed id); `analyse()` ignores unknown shift codes from a hand-edited backup
+  (was producing NaN totals); restore resets `swapSel`/`keyCursor`.
 - Editable header (hospital, department line, motto), NOTES box, signature lines,
   Sunday shading, today marker (screen only), per-row totals (toggleable).
 - **Footer swap**: signature lines (`.signs`) show only in print/PDF and PNG export;
