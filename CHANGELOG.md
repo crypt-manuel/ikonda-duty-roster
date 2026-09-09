@@ -5,12 +5,7 @@ All notable changes to the Duty Roster app. Versions follow the GitHub releases 
 
 ## [Unreleased]
 
-### Changed
-
-- **The toolbar hint is now one line plus a "Keyboard & tips" button.** It had grown
-  into a paragraph of run-on text as features were added. The full guidance moved into
-  a help dialog laid out in three sections — mouse, keyboard, and undo — with the
-  shortcuts shown as key caps instead of buried in prose.
+_Nothing yet._
 
 ## [1.2] — 2026-09-09
 
@@ -34,6 +29,10 @@ include these changes.
 
 ### Changed
 
+- **The toolbar hint is now one line plus a "Keyboard & tips" button.** It had grown
+  into a paragraph of run-on text as features were added. The full guidance moved into
+  a help dialog laid out in three sections — mouse, keyboard, and undo — with the
+  shortcuts shown as key caps instead of buried in prose.
 - **Fill suggestions now follow your staffing, not a built-in rotation.** The old
   engine assumed a four-day M→E→N→D cycle, which the department does not work. It
   now reads how many people you put on each shift from the days you have already
