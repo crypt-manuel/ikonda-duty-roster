@@ -19,6 +19,18 @@ All notable changes to the Duty Roster app. Versions follow the GitHub releases 
   nobody at MD level or above, and an intern left on night alone. These only run once
   cadres are set in the Staff list, so rosters that don't use them see no change.
 
+### Changed
+
+- **Fill suggestions now follow your staffing, not a built-in rotation.** The old
+  engine assumed a four-day M→E→N→D cycle, which the department does not work. It
+  now reads how many people you put on each shift from the days you have already
+  filled in — with a separate, usually lighter profile for Sundays and public
+  holidays — and fills the rest of the month to match, giving each shift to whoever
+  is owed it most while keeping people on a block of the same shift. It still never
+  asks for a seventh day in a row or a morning straight after a night, never touches
+  fixed-pattern (⟳) staff, and now says in the balance panel what levels it used.
+  Fill in a representative week first for the closest match.
+
 ## [1.1] — 2026-09-09
 
 ### Added

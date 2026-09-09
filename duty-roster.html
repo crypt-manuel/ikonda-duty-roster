@@ -979,76 +979,125 @@ function renderBalance(){
   h += `<div class="bissues">${probs.length?"<b>Things to look at:</b><ul><li>"+probs.join("</li><li>")+"</li></ul>":"<b>No rule problems found.</b>"}</div>`;
   if(nSugg) h += `<div class="bnote">✨ ${nSugg} suggested fills are shown as grey italic letters on the sheet.
     "Accept all" writes them in; painting over one replaces it; "Discard" removes them.</div>`;
+  if(nSugg && suggestInfo){
+    const lvl = t=>["M","D","E","N"].filter(K=>t[K]).map(K=>t[K]+" "+K).join(", ") || "nobody";
+    const same = JSON.stringify(suggestInfo.normal)===JSON.stringify(suggestInfo.light);
+    h += `<div class="bnote">The suggester follows no fixed rotation — it copies your own
+      staffing levels. ${suggestInfo.days
+        ? "From the "+suggestInfo.days+" day(s) you had already filled in it took <b>"+lvl(suggestInfo.normal)+"</b> per day"
+          + (same ? "" : ", and <b>"+lvl(suggestInfo.light)+"</b> on Sundays and public holidays")+"."
+        : "No day was complete enough to learn from, so it used a rough default of <b>"+lvl(suggestInfo.normal)+"</b>"
+          + " — fill in a representative week first and suggest again for a better match."}
+      ${suggestInfo.unmet ? "<br>⚠ "+suggestInfo.unmet+" slot(s) were left short rather than ask someone for a 7th"
+        + " day in a row. Those staffing levels need nearly everyone on duty every day, which leaves little"
+        + " room for rest — thinner cover on some days is unavoidable without more staff." : ""}</div>`;
+  }
   document.getElementById("bbody").innerHTML = h;
 }
 
+/* The department has no fixed rotation: weeks are assigned by hand each month, and
+   some people sit permanently on one shift. So the suggester imposes no cycle of its
+   own. It reads how many people the planner puts on each shift from the days already
+   filled in, then fills the empty cells to match that, always choosing whoever is
+   owed the shift most. Sundays and public holidays get their own (usually lighter)
+   staffing profile, learned the same way. Fixed-pattern (⟳) staff are never touched,
+   though their shifts still count toward each day's cover. */
+const SUGGEST_SHIFTS = ["N","E","D","M"];   // hardest to staff first
+let suggestInfo = null;                     // how the last run went, shown in the panel
+
+function learnStaffing(r, nDays, hols){
+  const bucket = {light:{M:[],D:[],E:[],N:[]}, normal:{M:[],D:[],E:[],N:[]}};
+  const enough = Math.max(2, Math.ceil(r.staff.length*0.6));
+  let days = 0;
+  for(let d=1; d<=nDays; d++){
+    const k = {M:0,D:0,E:0,N:0};
+    let filled = 0;
+    r.staff.forEach(s=>{
+      const c = r.cells[s.id+"_"+d];
+      if(!c) return;
+      filled++;
+      if(c==="ME"){ k.M++; k.E++; }
+      else if(k[c]!==undefined) k[c]++;
+    });
+    if(filled < enough) continue;   // a half-finished day would skew what we learn
+    days++;
+    const b = (dowOf(d)===0 || hols.has(d)) ? bucket.light : bucket.normal;
+    ["M","D","E","N"].forEach(K=> b[K].push(k[K]));
+  }
+  const median = a=>{ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y); return s[Math.floor(s.length/2)]; };
+  const profile = (b, fallback)=>{
+    const t = {};
+    ["M","D","E","N"].forEach(K=>{ const m = median(b[K]); t[K] = m===null ? fallback[K] : m; });
+    return t;
+  };
+  const normal = profile(bucket.normal, {M:2, D:1, E:2, N:1});
+  return {normal, light: bucket.light.M.length ? profile(bucket.light, normal) : normal, days};
+}
+
 function makeSuggestions(){
-  const r = roster(), nDays = daysInMonth();
+  const r = roster(), nDays = daysInMonth(), hols = holidaySet();
   snapshot("suggested fills");
   r.sugg = {};
-  const CYCLE = ["M","E","N","D"];
-  r.staff.forEach((s,i)=>{
-    if(s.fixed) return; // fixed-pattern staff: never suggest for them
-    // seq = actual codes, then fill empties by continuing run-of-4 rotations
-    const seq = [];
-    for(let d=1; d<=nDays; d++) seq[d] = r.cells[s.id+"_"+d] || "";
-    // stagger the first suggested run per person so the whole team
-    // doesn't rest on the same day (phase offset by staff index)
-    let firstRun = !seq[1];
-    for(let d=1; d<=nDays; d++){
-      if(seq[d]) continue;
-      const prev = seq[d-1] || "";
-      let runLen = 0;
-      for(let k=d-1; k>=1 && seq[k]===prev && prev; k--) runLen++;
-      const cap = firstRun ? (i%4)+1 : 4;
-      let pick;
-      if(["M","E","N","D"].includes(prev) && runLen<cap){
-        pick = prev;                                  // continue the current run
-      }else if(prev && prev!=="O" && prev!=="L"){
-        pick = "O"; firstRun = false;                 // run finished — rest day
-      }else{
-        if(d>1) firstRun = false; // starting any later run ends the stagger phase
-        // after a rest (or at the start): next shift in the rotation
-        let lastWork = "";
-        for(let k=d-1; k>=1; k--){ if(["M","E","N","D"].includes(seq[k])){ lastWork = seq[k]; break; } }
-        pick = lastWork ? CYCLE[(CYCLE.indexOf(lastWork)+1)%4] : CYCLE[i%4];
-        if(prev==="" && d>1) pick = CYCLE[i%4];       // isolated gap — restart rotation
-      }
-      // never suggest a morning/day straight after a night
-      if(seq[d-1]==="N" && (pick==="M"||pick==="D")) pick = "O";
-      seq[d] = pick;
-      r.sugg[s.id+"_"+d] = pick;
-    }
-  });
-  // repair pass: retarget suggestions so no day is left with zero morning,
-  // evening, or night cover (only touches suggestions, never painted cells)
+  const learned = learnStaffing(r, nDays, hols);
   const codeAt = (s,d)=> r.cells[s.id+"_"+d] || r.sugg[s.id+"_"+d] || "";
+
+  // running per-person tallies, seeded with what is already painted
+  const tally = {};
+  r.staff.forEach(s=> tally[s.id] = {M:0,D:0,E:0,N:0});
+  for(let d=1; d<=nDays; d++) r.staff.forEach(s=>{
+    const c = r.cells[s.id+"_"+d];
+    if(!c) return;
+    if(c==="ME"){ tally[s.id].M++; tally[s.id].E++; }
+    else if(tally[s.id][c]!==undefined) tally[s.id][c]++;
+  });
+
+  const runBefore = (s,d)=>{
+    let n = 0;
+    for(let k=d-1; k>=1; k--){ const c = codeAt(s,k); if(!c || c==="O" || c==="L") break; n++; }
+    return n;
+  };
+  const score = (s,K,d)=>{
+    const run = runBefore(s,d);
+    if(run>=6) return null;                              // six days on is the limit
+    const prev = codeAt(s,d-1);
+    if((K==="M"||K==="D") && prev==="N") return null;     // no morning/day straight after a night
+    // fairness vs continuity: at these weights a run of the same shift outweighs about
+    // two shifts' worth of imbalance, which keeps the week-long blocks the department
+    // actually works. Raising the fairness term shortens blocks without evening things out.
+    let sc = 1000 - tally[s.id][K]*10;                   // whoever is owed this shift most
+    if(prev===K) sc += 25;                               // keep a block of days together
+    else if(prev && prev!=="O" && prev!=="L") sc -= 15;   // switching shift mid-run is disruptive
+    return sc - run*2;                                   // and prefer the more rested
+  };
+
+  let unmet = 0;
   for(let d=1; d<=nDays; d++){
-    ["M","E","N"].forEach(K=>{
-      const covK = r.staff.filter(s=>{
-        const c = codeAt(s,d);
-        return c===K || (c==="ME" && (K==="M"||K==="E"));
-      }).length;
-      if(covK>0) return;
-      let best=null, bestScore=-1;
+    const target = (dowOf(d)===0 || hols.has(d)) ? learned.light : learned.normal;
+    const open = r.staff.filter(s=> !s.fixed && !r.cells[s.id+"_"+d]);
+    if(!open.length) continue;
+    const taken = new Set();
+    SUGGEST_SHIFTS.forEach(K=>{
+      let have = 0;
       r.staff.forEach(s=>{
-        const key = s.id+"_"+d;
-        const cur = r.sugg[key];
-        if(!cur || cur===K || cur==="O" || cur==="L") return; // keep rest days
-        const prev = codeAt(s,d-1), next = codeAt(s,d+1);
-        if(K==="M" && prev==="N") return;                 // no night→morning
-        if(K==="N" && (next==="M"||next==="D")) return;   // no night→morning next day
-        const curCount = r.staff.filter(x=>codeAt(x,d)===cur).length;
-        if(curCount<2) return;                            // don't open a new hole
-        let personalK = 0;                                 // fairness: prefer whoever
-        for(let dd=1; dd<=nDays; dd++)                     // has the fewest K so far
-          if(codeAt(s,dd)===K) personalK++;
-        const score = curCount*100 - personalK;
-        if(score>bestScore){ bestScore=score; best=key; }
+        const c = codeAt(s,d);
+        if(c===K || (c==="ME" && (K==="M"||K==="E"))) have++;
       });
-      if(best) r.sugg[best] = K;
+      for(let n = target[K]-have; n>0; n--){
+        let best = null, bestSc = -Infinity;
+        open.forEach(s=>{
+          if(taken.has(s.id)) return;
+          const sc = score(s,K,d);
+          if(sc!==null && sc>bestSc){ bestSc = sc; best = s; }
+        });
+        if(!best){ unmet++; break; }   // nobody left who can take it without breaking a rest rule
+        r.sugg[best.id+"_"+d] = K;
+        taken.add(best.id);
+        tally[best.id][K]++;
+      }
     });
+    open.forEach(s=>{ if(!taken.has(s.id)) r.sugg[s.id+"_"+d] = "O"; });
   }
+  suggestInfo = {days: learned.days, normal: learned.normal, light: learned.light, unmet};
   save(); renderTable();
 }
 document.getElementById("suggBtn").addEventListener("click", makeSuggestions);

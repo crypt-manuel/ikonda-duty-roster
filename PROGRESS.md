@@ -158,8 +158,25 @@ can be copied to any PC/flash drive and opened in Chrome/Edge with no internet).
   Gated on `usesCadre` (any staff member has a role) — without that gate every night would
   warn for rosters that don't use cadres. Empty nights are skipped (already reported as
   missing cover). Surfaced in the balance panel's "Things to look at" only — not on the sheet.
-- **Still to do**: retune the suggestion engine to the department's real rotation (needs the
-  actual OPD & EMD rhythm from the user — the current run-of-4 M→E→N→D order was a guess).
+- **Suggestion engine rewritten (the old run-of-4 M→E→N→D cycle is gone).** Established from
+  the June 2026 paper roster photo (`local/PXL_*.jpg`, rotate 270° to read) plus the user:
+  **there is no fixed cycle** — weeks are assigned by hand each month, and some staff sit
+  permanently on one shift (Bahati is D every day; that is what ⟳ is for). The photo shows
+  6 days on Mon–Sat with Sunday off and one shift type held for the whole week, but the user
+  was explicit that this is not a rule to encode, so the engine imposes no rhythm.
+  `learnStaffing()` takes the median number of people per shift from days that are at least
+  60% filled, keeping a separate profile for Sundays/holidays (usually much lighter), and
+  falls back to `{M:2,D:1,E:2,N:1}` with an on-screen hint when nothing is complete enough
+  to learn from. `makeSuggestions()` then fills each day to those levels in N→E→D→M order
+  (hardest to staff first), scoring candidates by who is owed the shift (−10 each), a
+  continuity bonus for staying on the same shift (+25) and a penalty for switching mid-run
+  (−15). **Do not raise the fairness weight** — tried 16/24, it cut average block length from
+  ~4.5 days to ~2.4 without improving the spread, because the apparent spread comes from
+  correctly declining to give more nights to someone who already has a week of them.
+  Hard rules return `null` (never scheduled): a 7th consecutive workday, or M/D straight
+  after a night. Anyone not needed that day gets O. Unfilled slots are counted and explained
+  in the panel rather than filled by breaking a rest rule — with their real levels (almost
+  the whole team on every weekday) some shortfall is structural.
 
 ## Release checklist (from v1.2 on)
 1. `node bump-version.js <x.y.z>` — sets `APP_VERSION` in the HTML **and** `version` in
