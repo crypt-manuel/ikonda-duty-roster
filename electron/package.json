@@ -1,7 +1,7 @@
 {
   "name": "ikonda-duty-roster",
   "productName": "Duty Roster",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Offline duty roster app for Consolata Hospital Ikonda — Electron wrapper around the single-file duty-roster.html",
   "author": "crypt-manuel",
   "license": "MIT",

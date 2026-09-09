@@ -5,6 +5,14 @@ All notable changes to the Duty Roster app. Versions follow the GitHub releases 
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [1.2] — 2026-09-09
+
+Released as the single-file `duty-roster.html` only. The desktop (Electron) app was
+not rebuilt for this version — the published desktop builds are still v1.1 and do not
+include these changes.
+
 ### Added
 
 - **Undo / redo** — `Ctrl+Z` and `Ctrl+Y` (or the toolbar buttons) step back through
