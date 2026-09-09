@@ -69,7 +69,36 @@
   .chip[data-code="HL"] .sw{background:var(--hl)}
   .chip[data-code="SWAP"] .sw{background:#fff; text-align:center; line-height:13px; font-size:11px}
 
-  .hint{font-size:11.5px; color:#69718a; margin-left:auto; max-width:340px}
+  .hint{font-size:11.5px; color:#69718a; margin-left:auto; max-width:330px; line-height:1.5}
+  .hint b{color:#4a5266; font-weight:600}
+  .helplink{
+    font:inherit; font-size:11.5px; padding:1px 7px; margin-left:2px;
+    border:1px solid #ccd2df; border-radius:20px; background:#fff; color:#4a5266;
+    cursor:pointer; white-space:nowrap;
+  }
+  .helplink::before{content:"？"; font-size:10px; margin-right:3px; opacity:.7}
+  .helplink:hover{background:#eef1fb; border-color:var(--blue); color:var(--blue-dark)}
+
+  /* help dialog */
+  #helpDlg{width:min(560px, 94vw)}
+  .helpbody{gap:14px}
+  .helpbody h4{
+    margin:0 0 6px; font-size:12px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--blue-dark); border-bottom:1px solid #e4e8f0; padding-bottom:4px;
+  }
+  .helpbody h4 small{text-transform:none; letter-spacing:0; color:#8b93a7; font-weight:400}
+  .helpbody ul{margin:0; padding-left:16px; font-size:12.5px; line-height:1.65}
+  .helpbody li{margin-bottom:2px}
+  .keys{display:grid; grid-template-columns:auto 1fr; gap:6px 10px; align-items:baseline;
+    margin:0; font-size:12.5px}
+  .keys dt{text-align:right; white-space:nowrap}
+  .keys dd{margin:0; color:#4a5266; line-height:1.45}
+  kbd{
+    display:inline-block; font:600 10.5px/1.6 "Segoe UI", system-ui, sans-serif;
+    min-width:17px; text-align:center; padding:0 5px; margin:0 1px;
+    background:#f4f5f9; color:#39415a;
+    border:1px solid #c7cddb; border-bottom-width:2px; border-radius:4px;
+  }
 
   /* ============ SHEET (the printable page) ============ */
   .sheet-wrap{padding:24px 16px 60px; overflow-x:auto}
@@ -342,10 +371,10 @@
     <span id="savedAt" style="font-size:11.5px; color:#69718a"
       title="Work autosaves to this computer as you type; this shows when you last saved a backup file"></span>
   </div>
-  <div class="hint">Pick a shift or the highlighter, then click or drag over cells. Right-click erases a cell.
-    Click a day number to mark a public holiday.
-    Keyboard: click a cell, then arrow keys move; letters paint — M D E N O L, X&nbsp;=&nbsp;M/E, T&nbsp;=&nbsp;ENT, C&nbsp;=&nbsp;ECHO; H highlights; Delete clears.
-    Ctrl+Z undoes, Ctrl+Y redoes.</div>
+  <div class="hint">
+    <b>Pick a shift, then click or drag over cells.</b> Right-click erases.
+    <button id="helpBtn" class="helplink">Keyboard &amp; tips</button>
+  </div>
 </div>
 
 <!-- ================= SHEET ================= -->
@@ -417,6 +446,46 @@
 </div>
 
 <!-- ================= DIALOGS ================= -->
+<dialog id="helpDlg">
+  <div class="dhead">Filling in the roster</div>
+  <div class="dbody helpbody">
+    <section>
+      <h4>With the mouse</h4>
+      <ul>
+        <li>Pick a shift in the palette, then <b>click or drag</b> across cells to fill them.</li>
+        <li>Clicking a cell that already holds that shift clears it. <b>Right-click</b> erases any cell.</li>
+        <li><b>🖍 Highlighter</b> marks priority cells; <b>⇄ Swap</b> exchanges two cells.</li>
+        <li>Click a <b>day number</b> in the header to mark or unmark a public holiday.</li>
+      </ul>
+    </section>
+    <section>
+      <h4>With the keyboard <small>— quicker for long runs</small></h4>
+      <p style="margin:0 0 8px; font-size:12.5px; color:#4a5266">Click any cell to place the cursor, then:</p>
+      <dl class="keys">
+        <dt><kbd>M</kbd><kbd>D</kbd><kbd>E</kbd><kbd>N</kbd><kbd>O</kbd><kbd>L</kbd></dt>
+        <dd>Paint that shift. The cursor steps right on its own, so a week of mornings
+            is just <kbd>M</kbd> six times.</dd>
+        <dt><kbd>X</kbd><kbd>T</kbd><kbd>C</kbd></dt>
+        <dd>M/E · ENT clinic · ECHO clinic</dd>
+        <dt><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></dt>
+        <dd>Move the cursor — <kbd>Home</kbd> and <kbd>End</kbd> jump to the ends of the month</dd>
+        <dt><kbd>H</kbd></dt><dd>Highlight the cell</dd>
+        <dt><kbd>Del</kbd></dt><dd>Clear the cell — <kbd>← Bksp</kbd> clears and steps back</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Put the cursor away</dd>
+      </dl>
+    </section>
+    <section>
+      <h4>If something goes wrong</h4>
+      <dl class="keys">
+        <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd></dt>
+        <dd>Undo — this covers Clear, Copy last month and pattern fills too, not just painting</dd>
+        <dt><kbd>Ctrl</kbd>+<kbd>Y</kbd></dt><dd>Redo</dd>
+      </dl>
+    </section>
+  </div>
+  <div class="dfoot"><button id="helpClose" class="primary">Got it</button></div>
+</dialog>
+
 <dialog id="leaveDlg">
   <div class="dhead">🏖 Record leave</div>
   <div class="dbody">
@@ -1292,6 +1361,8 @@ document.getElementById("colorToggle").addEventListener("change", e=>{
   document.body.classList.toggle("bw", !e.target.checked);
 });
 document.getElementById("printBtn").addEventListener("click", ()=>window.print());
+document.getElementById("helpBtn").addEventListener("click", ()=>document.getElementById("helpDlg").showModal());
+document.getElementById("helpClose").addEventListener("click", ()=>document.getElementById("helpDlg").close());
 function undo(){ stepHistory(undoStack, redoStack); }
 function redo(){ stepHistory(redoStack, undoStack); }
 document.getElementById("undoBtn").addEventListener("click", undo);

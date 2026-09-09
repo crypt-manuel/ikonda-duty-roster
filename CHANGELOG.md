@@ -5,7 +5,12 @@ All notable changes to the Duty Roster app. Versions follow the GitHub releases 
 
 ## [Unreleased]
 
-_Nothing yet._
+### Changed
+
+- **The toolbar hint is now one line plus a "Keyboard & tips" button.** It had grown
+  into a paragraph of run-on text as features were added. The full guidance moved into
+  a help dialog laid out in three sections — mouse, keyboard, and undo — with the
+  shortcuts shown as key caps instead of buried in prose.
 
 ## [1.2] — 2026-09-09
 
