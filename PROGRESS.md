@@ -1,6 +1,6 @@
 # Duty Roster App — Progress Note
 
-_Last updated: 2026-09-08_
+_Last updated: 2026-09-09_
 
 ## What this project is
 An **offline, single-file duty roster app** for Consolata Hospital Ikonda (OPD & EMD),
@@ -16,6 +16,19 @@ can be copied to any PC/flash drive and opened in Chrome/Edge with no internet).
   - `PXL_20260530_045514613.jpg` — photo of the hand-filled June 2026 paper roster
   - `Screenshot 2026-09-07 133430.png` — clean hospital logo (already embedded in the app, 280px)
 - `docs/screenshot.png` — README screenshot (June 2026 demo, placeholder names)
+- `electron/` — **desktop wrapper (added 2026-09-09)**: `main.js` (window shell + File/View/Help
+  menu, Ctrl+P print, single-instance, sandboxed, external links → system browser), `sync.js`
+  (copies `../duty-roster.html` into gitignored `electron/app/` on every prestart/predist —
+  the HTML stays the single source of truth, the wrapper forks nothing; `--local` flag bundles
+  the real-names copy for private builds), `package.json` (electron + electron-builder;
+  `npm start`, `npm run dist` → NSIS installer + portable exe in gitignored `electron/dist/`).
+  Version there should track APP_VERSION. `smoke.js` = headless load test (`npx electron smoke.js`).
+  `icon.ico` (committed) generated from the logo screenshot: PowerShell System.Drawing —
+  near-white→transparent via ImageAttributes.SetColorKey(235,235,235→white), centered on a
+  512px transparent square → png2icons (devDep) createICO. Regenerate the same way if the
+  logo changes. Code signing: none — electron/README.md documents SmartScreen options
+  (USB copies carry no Mark-of-the-Web so no warning; SignPath free for OSS; Azure Trusted
+  Signing ~$10/mo; OV/EV certs; self-signed doesn't affect SmartScreen).
 - `README.md`, `LICENSE` (MIT)
 
 ## Features built and tested
@@ -60,12 +73,31 @@ can be copied to any PC/flash drive and opened in Chrome/Edge with no internet).
   ENT/ECHO 08:00–14:00 (same frame as morning; clinics sit in subdepartments run by
   EMD/IMED, hence "out of schedule" for OPD coverage — matches the existing rule that
   they don't count toward coverage)).
-- **Persistence**: localStorage autosave per month; new month copies the staff list forward.
+- **Persistence**: localStorage autosave per month; new month copies the staff list forward
+  (incl. role + fixed flags since v1.1).
+- **⧉ Copy last month (v1.1)**: toolbar button next to the month picker — clones the previous
+  month's staff (with roles + ⟳ flags) and all shift cells into the current month,
+  **weekday-aligned**: target day d copies source day `d + srcDays − 28` (the same weekday
+  4 weeks earlier; while > srcDays subtract 7 → last same-weekday day of the source month),
+  so Sunday rest days stay on Sundays. Verified for 28/29/30/31-day combinations incl. leap
+  Feb. **L (leave) cells are deliberately NOT copied** (leave is month-specific — the mapped
+  cell is left empty); highlights/suggestions/notes/custom holidays not copied; confirms
+  before overwriting a month that already has shifts; alerts if the previous month has no
+  roster.
+- **Backup stamps (v1.1)**: download-fallback backups get filename
+  `duty-roster-backup-YYYY-MM_YYYY-MM-DD_HH-MM.json`; every successful backup (FS-API or
+  download) records `state.lastBackup` (ISO) and a toolbar `#savedAt` indicator shows
+  "Last backup: today HH:MM" (red "No backup file yet" until the first one).
+- **Keyboard entry (v1.1)**: click a cell to place a blue cursor (`td.kcur`, screen-only —
+  hidden in print + PNG export), then arrows move, letters paint (M D E N O L, X=M/E, T=ENT,
+  C=ECHO; cursor auto-steps right after each letter, typewriter style), H toggles highlight,
+  Delete/Space clears, Backspace clears + steps left, Home/End jump, Escape hides. Handler
+  ignores keys when focus is in inputs/contenteditable/panels or a dialog is open.
 - Editable header (hospital, department line, motto), NOTES box, signature lines,
   Sunday shading, today marker (screen only), per-row totals (toggleable).
 - **Footer swap**: signature lines (`.signs`) show only in print/PDF and PNG export;
   on screen they're replaced by `#copyfoot` — "© <year> <hospital> · Duty Roster App
-  v<APP_VERSION>" (constant next to STORE, currently "1.0" — bump on future releases).
+  v<APP_VERSION>" (constant next to STORE, currently "1.1" — bump on future releases).
 - **Aesthetic pass (Sep 2026)**: stronger Sunday tint (`--sun:#e6e7ef`) + red Sunday/holiday
   day-numbers in the header (higher-specificity rule needed vs `thead tr:first-child th`);
   2px week-boundary line before Monday columns (`mon` class from `dayCls`, also on tfoot);

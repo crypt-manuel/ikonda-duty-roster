@@ -1,0 +1,42 @@
+{
+  "name": "ikonda-duty-roster",
+  "productName": "Duty Roster",
+  "version": "1.1.0",
+  "description": "Offline duty roster app for Consolata Hospital Ikonda — Electron wrapper around the single-file duty-roster.html",
+  "author": "crypt-manuel",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "sync": "node sync.js",
+    "prestart": "node sync.js",
+    "start": "electron .",
+    "predist": "node sync.js",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "io.github.cryptmanuel.dutyroster",
+    "files": [
+      "main.js",
+      "app/**"
+    ],
+    "win": {
+      "icon": "icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "artifactName": "DutyRoster-setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "DutyRoster-portable-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "png2icons": "^2.0.1"
+  }
+}

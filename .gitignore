@@ -1,2 +1,7 @@
 # Local-only material: real staff roster copy, source documents, photos
 local/
+
+# Electron wrapper: generated/synced content and dependencies
+electron/node_modules/
+electron/app/
+electron/dist/

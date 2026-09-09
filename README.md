@@ -22,12 +22,21 @@ Chrome or Edge. **No internet, no install, no build step.**
 4. **Print / PDF** for the wall copy, **Image** for WhatsApp, **Backup** for a JSON file.
 
 Data autosaves to the browser's localStorage per month; a new month copies the staff
-list forward automatically.
+list forward automatically, and **⧉ Copy last month** duplicates the whole previous
+roster (staff, fixed patterns, shifts — weekday-aligned, leave excluded) as a
+starting point.
 
 ## Features
 
 - **Shift painting** — palette of M / D / E / N / M/E / ENT / ECHO / Off / Leave;
   click or drag to fill, right-click to erase, re-click to toggle.
+- **Keyboard entry** — click a cell, then arrow keys move the cursor and letters
+  paint (`M D E N O L`, `X` = M/E, `T` = ENT, `C` = ECHO, `H` = highlight,
+  `Delete` clears); the cursor steps right after each letter for fast typing.
+- **⧉ Copy last month** — clones the previous month's staff list, fixed-pattern
+  flags and shift skeleton into the current month, **aligned by weekday** (each
+  day copies from the same weekday four weeks earlier, so Sunday rest days stay
+  on Sundays); leave days stay behind.
 - **Balance assistant (⚖)** — assists, never replaces the planner:
   - fairness table (shift counts vs team average),
   - rest-rule warnings (>6 consecutive workdays, night→morning turnaround),
@@ -47,7 +56,9 @@ list forward automatically.
   - **Print / PDF** — A4 landscape, one page, colour or B&W ink-saver mode,
   - **PNG image** — for sharing in WhatsApp groups,
   - **CSV** — opens in Excel (formula-injection safe),
-  - **JSON backup / restore** — saves straight to a chosen file in Chrome/Edge,
+  - **JSON backup / restore** — saves straight to a chosen file in Chrome/Edge;
+    downloaded backups get a date-time stamped filename and the toolbar shows a
+    "Last backup" indicator,
   - **📱 Per-person share** — formatted WhatsApp text with grouped runs, and an
     **.ics calendar file** with per-shift timed events and reminders.
 - Editable header (hospital name, department, motto), notes box, signature lines,
@@ -58,6 +69,15 @@ list forward automatically.
 The file in this repository ships with **placeholder staff names** ("Doctor 1" …).
 Enter your real staff list once in the app — it is stored only in the browser's
 localStorage on that PC and in your own backup files, never in this repository.
+
+## Desktop (Electron) edition
+
+Prefer a normal installed app? The [`electron/`](electron/) folder wraps the very
+same `duty-roster.html` in a desktop window — one icon to double-click, no browser
+required, and an optional **portable exe** that runs from a flash drive. The HTML
+file stays the single source of truth: the wrapper syncs it in at build time, so
+both editions always have identical features, and their `.json` backups are
+interchangeable. See [electron/README.md](electron/README.md) to run or build it.
 
 ## Browser support
 

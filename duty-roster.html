@@ -168,6 +168,9 @@
   /* swap selection */
   td.day.swapsel{box-shadow:inset 0 0 0 2.5px #e08514 !important}
 
+  /* keyboard cursor (screen only) */
+  td.day.kcur{box-shadow:inset 0 0 0 2.5px var(--blue)}
+
   /* coverage rows */
   .roster tfoot td{height:4.8mm; font-size:6.5pt; color:#454c5e; background:#fafbfd}
   .roster tfoot td.covlbl{text-align:left; padding:0 2mm; font-weight:700; font-size:6.5pt; white-space:nowrap}
@@ -270,6 +273,7 @@
     *{-webkit-print-color-adjust:exact; print-color-adjust:exact}
     [contenteditable]:hover{background:transparent}
     .roster th.today{outline:none}
+    td.day.kcur{box-shadow:none !important}
     td.day.ghost{color:transparent !important}
     td.day.warncell::after{display:none}
     .warnflag{display:none}
@@ -287,6 +291,7 @@
   }
   body.no-tot .totc{display:none}
   body.exporting .roster th.today{outline:none}
+  body.exporting td.day.kcur{box-shadow:none}
   body.exporting td.day.ghost{color:transparent}
   body.exporting td.day.warncell::after{display:none}
   body.exporting .warnflag{display:none}
@@ -301,6 +306,7 @@
   <div class="group">
     <label for="month">Month</label>
     <input type="month" id="month">
+    <button id="cloneBtn" title="Copy the staff list, fixed-pattern flags and shifts from the previous month into this one, aligned by weekday so Sundays stay Sundays (leave days are not copied)">⧉ Copy last month</button>
   </div>
   <div class="sep"></div>
   <div class="palette" id="palette"></div>
@@ -327,9 +333,12 @@
     <button id="pngBtn">🖼 Image</button>
     <button id="shareBtn">📱 Share</button>
     <button id="printBtn" class="primary">🖨 Print / PDF</button>
+    <span id="savedAt" style="font-size:11.5px; color:#69718a"
+      title="Work autosaves to this computer as you type; this shows when you last saved a backup file"></span>
   </div>
   <div class="hint">Pick a shift or the highlighter, then click or drag over cells. Right-click erases a cell.
-    Click a day number to mark a public holiday.</div>
+    Click a day number to mark a public holiday.
+    Keyboard: click a cell, then arrow keys move; letters paint — M D E N O L, X&nbsp;=&nbsp;M/E, T&nbsp;=&nbsp;ENT, C&nbsp;=&nbsp;ECHO; H highlights; Delete clears.</div>
 </div>
 
 <!-- ================= SHEET ================= -->
@@ -496,7 +505,7 @@ const ROLES = [["","—"],["SP","Specialist"],["MD","MD"],["INT","Intern"],["CO"
 const DEFAULT_STAFF = ["Doctor 1","Doctor 2","Doctor 3","Doctor 4","Doctor 5","Doctor 6",
   "Doctor 7","Doctor 8","Doctor 9","Doctor 10","Doctor 11","Doctor 12","Doctor 13","Doctor 14"];
 const STORE = "dutyRosterApp.v1";
-const APP_VERSION = "1.0";
+const APP_VERSION = "1.1";
 const DOW = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 // Tanzania fixed-date public holidays (month-day)
 const TZ_HOLIDAYS = ["1-1","1-12","4-7","4-26","5-1","7-7","8-8","10-14","12-9","12-25","12-26"];
@@ -507,6 +516,7 @@ let painting = false;
 let paintMode = "set"; // or "erase"
 let lastPaint = null;  // {id, day} — for filling gaps on fast drags
 let swapSel = null;    // {id, day} first cell chosen with the swap tool
+let keyCursor = null;  // {i: staff row index, d: day} — keyboard entry cursor
 
 function load(){
   try{
@@ -530,7 +540,7 @@ function roster(){
     const keys = Object.keys(state.rosters).sort();
     let staff;
     if(keys.length){
-      staff = state.rosters[keys[keys.length-1]].staff.map(s=>({id:s.id, name:s.name}));
+      staff = state.rosters[keys[keys.length-1]].staff.map(s=>({id:s.id, name:s.name, role:s.role, fixed:s.fixed}));
     }else{
       staff = DEFAULT_STAFF.map(n=>({id:"s"+(state.nextId++), name:n}));
     }
@@ -588,6 +598,7 @@ function renderAll(){
     "© "+new Date().getFullYear()+" "+state.hospital+" · Duty Roster App v"+APP_VERSION;
   renderTable();
   renderPanel();
+  renderSavedAt();
 }
 
 function analyse(){
@@ -644,6 +655,7 @@ function renderTable(){
   for(let d=1; d<=nDays; d++) h += `<th class="dow ${dayCls(d)}">${DOW[dowOf(d)]}</th>`;
   h += "<th class='totc dow'></th></tr></thead><tbody>";
 
+  const kcId = keyCursor && r.staff[keyCursor.i] ? r.staff[keyCursor.i].id : null;
   r.staff.forEach((s,i)=>{
     const info = rows[i];
     const warn = info.issues.length
@@ -663,7 +675,8 @@ function renderTable(){
         code ? "c-"+code : (sug ? "ghost" : ""),
         r.hl[key] ? "hl" : "",
         turnDays.has(d) ? "warncell" : "",
-        swapSel && swapSel.id===s.id && swapSel.day===d ? "swapsel" : ""
+        swapSel && swapSel.id===s.id && swapSel.day===d ? "swapsel" : "",
+        kcId===s.id && keyCursor.d===d ? "kcur" : ""
       ].join(" ");
       h += `<td class="${cls}" data-id="${s.id}" data-day="${d}">${sh?sh.disp:""}</td>`;
     }
@@ -731,6 +744,7 @@ tableEl.addEventListener("mousedown", e=>{
   const td = e.target.closest("td.day"); if(!td) return;
   e.preventDefault();
   if(e.button===2) return;
+  keyCursor = {i: roster().staff.findIndex(s=>s.id===td.dataset.id), d:+td.dataset.day};
   if(tool==="SWAP"){ doSwap(td); return; }
   const key = td.dataset.id+"_"+td.dataset.day;
   paintMode = (tool==="HL" ? roster().hl[key] : roster().cells[key]===tool) ? "erase" : "set";
@@ -757,6 +771,65 @@ tableEl.addEventListener("click", e=>{
   const i = r.customHol.indexOf(d);
   if(i>=0) r.customHol.splice(i,1); else r.customHol.push(d);
   save(); renderTable();
+});
+
+/* ---------- keyboard entry ---------- */
+/* Click a cell to place the cursor, then: arrows move, letters paint
+   (M D E N O L, X = M/E, T = ENT, C = ECHO — the cursor steps right after each),
+   H toggles the highlighter, Delete/Space clears, Backspace clears and steps left,
+   Home/End jump to the month edges, Escape hides the cursor. */
+const KEY_CODES = {m:"M", d:"D", e:"E", n:"N", o:"O", l:"L", x:"ME", t:"ENT", c:"ECHO"};
+function focusCursorCell(){
+  const td = document.querySelector("td.day.kcur");
+  if(td) td.scrollIntoView({block:"nearest", inline:"nearest"});
+}
+document.addEventListener("keydown", e=>{
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  if(t && t.closest && t.closest("input, textarea, select, [contenteditable], dialog, .panel")) return;
+  if(document.querySelector("dialog[open]")) return;
+  const r = roster(), nd = daysInMonth();
+  const nav = {ArrowLeft:[0,-1], ArrowRight:[0,1], ArrowUp:[-1,0], ArrowDown:[1,0]}[e.key];
+  if(nav){
+    e.preventDefault();
+    if(!keyCursor || !r.staff[keyCursor.i]) keyCursor = {i:0, d:1};
+    else{
+      keyCursor.i = Math.min(r.staff.length-1, Math.max(0, keyCursor.i+nav[0]));
+      keyCursor.d = Math.min(nd, Math.max(1, keyCursor.d+nav[1]));
+    }
+    renderTable(); focusCursorCell(); return;
+  }
+  if(e.key==="Escape"){
+    if(keyCursor){ keyCursor = null; renderTable(); }
+    return;
+  }
+  if(!keyCursor || !r.staff[keyCursor.i]) return;
+  if(e.key==="Home"){ e.preventDefault(); keyCursor.d = 1; renderTable(); focusCursorCell(); return; }
+  if(e.key==="End"){ e.preventDefault(); keyCursor.d = nd; renderTable(); focusCursorCell(); return; }
+  const key = r.staff[keyCursor.i].id+"_"+keyCursor.d;
+  const code = KEY_CODES[e.key.toLowerCase()];
+  if(code){
+    e.preventDefault();
+    r.cells[key] = code; delete r.sugg[key];
+    if(keyCursor.d<nd) keyCursor.d++;
+    save(); renderTable(); focusCursorCell(); return;
+  }
+  if(e.key==="h" || e.key==="H"){
+    e.preventDefault();
+    if(r.hl[key]) delete r.hl[key]; else r.hl[key] = true;
+    save(); renderTable(); return;
+  }
+  if(e.key==="Delete" || e.key===" "){
+    e.preventDefault();
+    delete r.cells[key]; delete r.hl[key]; delete r.sugg[key];
+    save(); renderTable(); return;
+  }
+  if(e.key==="Backspace"){
+    e.preventDefault();
+    delete r.cells[key]; delete r.hl[key]; delete r.sugg[key];
+    if(keyCursor.d>1) keyCursor.d--;
+    save(); renderTable(); focusCursorCell(); return;
+  }
 });
 
 /* ---------- palette ---------- */
@@ -1017,7 +1090,39 @@ document.getElementById("notes").addEventListener("input", e=>{ roster().notes =
 /* ---------- toolbar ---------- */
 document.getElementById("month").addEventListener("change", e=>{
   if(!e.target.value) return;
-  state.current = e.target.value; swapSel = null; save(); renderAll();
+  state.current = e.target.value; swapSel = null; keyCursor = null; save(); renderAll();
+});
+document.getElementById("cloneBtn").addEventListener("click", ()=>{
+  const {y,m} = ym();
+  const pd = new Date(y, m-2, 1);
+  const pk = pd.getFullYear()+"-"+String(pd.getMonth()+1).padStart(2,"0");
+  const src = state.rosters[pk];
+  if(!src || (!Object.keys(src.cells).length && !src.staff.length)){
+    alert("There is no roster for "+pd.toLocaleString("en",{month:"long"})+" "+pd.getFullYear()+" to copy from.");
+    return;
+  }
+  const r = roster();
+  if(Object.keys(r.cells).length &&
+     !confirm(monthTitle()+" already has shifts painted.\nReplace everything with a copy of "
+       +pd.toLocaleString("en",{month:"long"})+" "+pd.getFullYear()+"?")) return;
+  r.staff = src.staff.map(s=>({id:s.id, name:s.name, role:s.role, fixed:s.fixed}));
+  r.cells = {}; r.hl = {}; r.sugg = {};
+  // weekday-aligned copy: each target day takes the shift from the source day
+  // exactly 4 weeks earlier (same weekday), so Sundays stay Sundays; target days
+  // whose 4-weeks-back date falls before the source month use the source month's
+  // last occurrence of that weekday instead
+  const nd = daysInMonth();
+  const srcDays = new Date(pd.getFullYear(), pd.getMonth()+1, 0).getDate();
+  for(let d=1; d<=nd; d++){
+    let sd = d + srcDays - 28;
+    while(sd > srcDays) sd -= 7;
+    r.staff.forEach(s=>{
+      const code = src.cells[s.id+"_"+sd];
+      if(code && code!=="L") r.cells[s.id+"_"+d] = code; // leave stays with its own month
+    });
+  }
+  swapSel = null; keyCursor = null;
+  save(); renderAll();
 });
 document.getElementById("clearBtn").addEventListener("click", ()=>{
   if(!confirm("Clear ALL shifts for "+monthTitle()+"? Staff list is kept.")) return;
@@ -1051,10 +1156,26 @@ const fsdb = {
     tx.oncomplete = tx.onabort = tx.onerror = res; }); }catch(e){} }
 };
 function backupJSON(){ return JSON.stringify(state,null,2); }
+function backupStamp(){ // e.g. 2026-09-09_14-32 — keeps successive backup files apart
+  const t = new Date(), p2 = n=>String(n).padStart(2,"0");
+  return t.getFullYear()+"-"+p2(t.getMonth()+1)+"-"+p2(t.getDate())+"_"+p2(t.getHours())+"-"+p2(t.getMinutes());
+}
+function noteBackup(){ state.lastBackup = new Date().toISOString(); save(); renderSavedAt(); }
+function renderSavedAt(){
+  const el = document.getElementById("savedAt");
+  if(!state.lastBackup){ el.textContent = "No backup file yet"; el.style.color = "#a02020"; return; }
+  const t = new Date(state.lastBackup), p2 = n=>String(n).padStart(2,"0");
+  const when = t.toDateString()===new Date().toDateString()
+    ? "today "+p2(t.getHours())+":"+p2(t.getMinutes())
+    : t.getDate()+" "+t.toLocaleString("en",{month:"short"})+" "+p2(t.getHours())+":"+p2(t.getMinutes());
+  el.textContent = "Last backup: "+when;
+  el.style.color = "";
+}
 function downloadBackup(){
+  noteBackup(); // stamp first so the saved file records its own backup time
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([backupJSON()],{type:"application/json"}));
-  a.download = "duty-roster-backup-"+state.current+".json";
+  a.download = "duty-roster-backup-"+state.current+"_"+backupStamp()+".json";
   a.click(); URL.revokeObjectURL(a.href);
 }
 async function saveBackup(forcePick){
@@ -1075,6 +1196,7 @@ async function saveBackup(forcePick){
   }
   try{
     const w = await h.createWritable();
+    noteBackup(); // stamp first so the saved file records its own backup time
     await w.write(backupJSON()); await w.close();
     btn.title = 'Saves straight to "'+h.name+'" — right-click to pick a different file';
     btn.textContent = "✓ Saved";
