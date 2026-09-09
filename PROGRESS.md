@@ -161,7 +161,7 @@ can be copied to any PC/flash drive and opened in Chrome/Edge with no internet).
 - **Suggestion engine rewritten (the old run-of-4 M→E→N→D cycle is gone).** Established from
   the June 2026 paper roster photo (`local/PXL_*.jpg`, rotate 270° to read) plus the user:
   **there is no fixed cycle** — weeks are assigned by hand each month, and some staff sit
-  permanently on one shift (Bahati is D every day; that is what ⟳ is for). The photo shows
+  permanently on one shift (one row is D every day; that is what ⟳ is for). The photo shows
   6 days on Mon–Sat with Sunday off and one shift type held for the whole week, but the user
   was explicit that this is not a rule to encode, so the engine imposes no rhythm.
   `learnStaffing()` takes the median number of people per shift from days that are at least
