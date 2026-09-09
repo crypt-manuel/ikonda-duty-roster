@@ -11,7 +11,8 @@
     "prestart": "node sync.js",
     "start": "electron .",
     "predist": "node sync.js",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "postdist": "node archive-zip.js"
   },
   "build": {
     "appId": "io.github.cryptmanuel.dutyroster",
@@ -19,11 +20,14 @@
       "main.js",
       "app/**"
     ],
+    "artifactName": "DutyRoster-${version}-win-x64.${ext}",
     "win": {
       "icon": "icon.ico",
       "target": [
         "nsis",
-        "portable"
+        "portable",
+        "zip",
+        "tar.gz"
       ]
     },
     "nsis": {

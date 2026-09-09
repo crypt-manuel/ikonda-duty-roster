@@ -13,6 +13,20 @@ lands in the desktop app too.
 - Installer (`DutyRoster-setup-*.exe`) or **portable single exe**
   (`DutyRoster-portable-*.exe`) that runs from a flash drive.
 
+Four artifacts are built (`npm run dist`):
+
+| Artifact | What it is |
+| --- | --- |
+| `DutyRoster-setup-1.1.0.exe` | one-click installer (Start-menu entry) |
+| `DutyRoster-portable-1.1.0.exe` | single self-extracting exe, no install |
+| `DutyRoster-1.1.0-win-x64.zip` | the unpacked app folder — **unzip and run `Duty Roster.exe`** |
+| `DutyRoster-1.1.0-win-x64.tar.gz` | same folder as a gzipped tarball |
+
+The **zip/tar.gz archives are the friendliest downloads**: browsers and email
+filters often block or warn on a bare `.exe`, but pass an archive through. They
+contain the whole app directory, so keep the files together — extract the folder
+somewhere (a flash drive is fine) and launch `Duty Roster.exe` inside it.
+
 Backups are the same `.json` files in both editions — you can move between the
 HTML and the Electron app at any time via **⬇ Backup / ⬆ Restore**.
 
